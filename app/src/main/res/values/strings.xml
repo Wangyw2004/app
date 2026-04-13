@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">No1</string>
+    <string name="login">登录</string>
+    <string name="logout">退出登录</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="skip">跳过登录，直接使用计数器</string>
+    <string name="increment">增加</string>
+    <string name="reset">重置</string>
+    <string name="counter">计数器</string>
+    <string name="profile">我的</string>
+    <string name="user_info">用户信息</string>
+    <string name="guest_mode">游客模式，点击右上角菜单登录</string>
+    <string name="welcome_back">欢迎回来</string>
+    <string name="login_success">登录成功</string>
+    <string name="login_failed">登录失败</string>
+</resources>
