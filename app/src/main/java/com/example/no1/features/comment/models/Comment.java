@@ -11,15 +11,16 @@ public class Comment {
     private String author;
     private String authorId;
     private Date createTime;
-    private String parentId;
-    private String replyTo;
-    private String replyToId;
+    private String parentId;      // 父评论ID（一级评论parentId=null）
+    private String replyToId;     // 回复的用户ID（null表示回复一级评论）
+    private String replyToName;   // 回复的用户名（null表示不加@）
     private List<Comment> replies;
 
     public Comment() {
         this.replies = new ArrayList<>();
     }
 
+    // 一级评论（回复帖子）
     public Comment(String id, String postId, String content, String author, String authorId) {
         this.id = id;
         this.postId = postId;
@@ -27,14 +28,15 @@ public class Comment {
         this.author = author;
         this.authorId = authorId;
         this.createTime = new Date();
-        this.replies = new ArrayList<>();
         this.parentId = null;
-        this.replyTo = null;
         this.replyToId = null;
+        this.replyToName = null;
+        this.replies = new ArrayList<>();
     }
 
+    // 二级评论（回复一级评论或回复二级评论）
     public Comment(String id, String postId, String content, String author, String authorId,
-                   String parentId, String replyTo, String replyToId) {
+                   String parentId, String replyToId, String replyToName) {
         this.id = id;
         this.postId = postId;
         this.content = content;
@@ -42,8 +44,8 @@ public class Comment {
         this.authorId = authorId;
         this.createTime = new Date();
         this.parentId = parentId;
-        this.replyTo = replyTo;
         this.replyToId = replyToId;
+        this.replyToName = replyToName;
         this.replies = new ArrayList<>();
     }
 
@@ -69,11 +71,11 @@ public class Comment {
     public String getParentId() { return parentId; }
     public void setParentId(String parentId) { this.parentId = parentId; }
 
-    public String getReplyTo() { return replyTo; }
-    public void setReplyTo(String replyTo) { this.replyTo = replyTo; }
-
     public String getReplyToId() { return replyToId; }
     public void setReplyToId(String replyToId) { this.replyToId = replyToId; }
+
+    public String getReplyToName() { return replyToName; }
+    public void setReplyToName(String replyToName) { this.replyToName = replyToName; }
 
     public List<Comment> getReplies() { return replies; }
     public void setReplies(List<Comment> replies) { this.replies = replies; }
@@ -83,6 +85,14 @@ public class Comment {
             this.replies = new ArrayList<>();
         }
         this.replies.add(reply);
+    }
+
+    public boolean isTopLevel() {
+        return parentId == null;
+    }
+
+    public boolean isAuthor(String userId) {
+        return authorId != null && authorId.equals(userId);
     }
 
     public int getReplyCount() {
@@ -96,17 +106,9 @@ public class Comment {
         return null;
     }
 
-    public boolean isTopLevel() {
-        return parentId == null || parentId.isEmpty();
-    }
-
-    public boolean isAuthor(String userId) {
-        return authorId != null && authorId.equals(userId);
-    }
-
     public String getDisplayContent() {
-        if (replyTo != null && !replyTo.isEmpty()) {
-            return "@" + replyTo + " " + content;
+        if (replyToName != null && !replyToName.isEmpty()) {
+            return "@" + replyToName + " " + content;
         }
         return content;
     }

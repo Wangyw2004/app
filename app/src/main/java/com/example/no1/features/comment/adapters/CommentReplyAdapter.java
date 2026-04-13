@@ -85,21 +85,22 @@ public class CommentReplyAdapter extends RecyclerView.Adapter<CommentReplyAdapte
         void bind(Comment reply, int position) {
             authorText.setText(reply.getAuthor());
 
-            if (reply.getReplyTo() != null && !reply.getReplyTo().isEmpty()) {
-                contentText.setText("回复 @" + reply.getReplyTo() + "：" + reply.getContent());
-            } else {
-                contentText.setText(reply.getContent());
-            }
+            // 显示内容（如果是回复二级评论，会显示@用户名）
+            contentText.setText(reply.getDisplayContent());
 
             SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
             timeText.setText(sdf.format(reply.getCreateTime()));
 
-            replyButton.setOnClickListener(v -> {
-                if (replyListener != null) {
-                    replyListener.onReplyClick(reply, position);
-                }
-            });
+            // 回复按钮点击事件
+            if (replyButton != null) {
+                replyButton.setOnClickListener(v -> {
+                    if (replyListener != null) {
+                        replyListener.onReplyClick(reply, position);
+                    }
+                });
+            }
 
+            // 删除按钮
             if (currentUserId != null && reply.isAuthor(currentUserId)) {
                 deleteIcon.setVisibility(View.VISIBLE);
                 deleteIcon.setOnClickListener(v -> {

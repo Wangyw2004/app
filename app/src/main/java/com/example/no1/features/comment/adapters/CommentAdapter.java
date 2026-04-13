@@ -62,11 +62,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             if (latestReply != null) {
                 holder.replyPreview.setVisibility(View.VISIBLE);
                 holder.latestReplyAuthor.setText(latestReply.getAuthor());
-
-                String replyContent = latestReply.getReplyTo() != null ?
-                        "回复 @" + latestReply.getReplyTo() + "：" + latestReply.getContent() :
-                        latestReply.getContent();
-                holder.latestReplyContent.setText(replyContent);
+                holder.latestReplyContent.setText(latestReply.getDisplayContent());
 
                 SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
                 holder.latestReplyTime.setText(sdf.format(latestReply.getCreateTime()));
@@ -99,7 +95,6 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         private TextView authorText;
         private TextView contentText;
         private TextView timeText;
-        private TextView replyIndicator;
         private TextView replyButton;
         private ImageView deleteIcon;
         private LinearLayout replyPreview;
@@ -113,7 +108,6 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             authorText = itemView.findViewById(R.id.commentAuthor);
             contentText = itemView.findViewById(R.id.commentContent);
             timeText = itemView.findViewById(R.id.commentTime);
-            replyIndicator = itemView.findViewById(R.id.replyIndicator);
             replyButton = itemView.findViewById(R.id.replyButton);
             deleteIcon = itemView.findViewById(R.id.deleteCommentIcon);
             replyPreview = itemView.findViewById(R.id.replyPreview);
@@ -125,14 +119,6 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
 
         void bind(Comment comment, int position) {
             authorText.setText(comment.getAuthor());
-
-            if (!comment.isTopLevel() && comment.getReplyTo() != null) {
-                replyIndicator.setVisibility(View.VISIBLE);
-                replyIndicator.setText("回复 @" + comment.getReplyTo() + "：");
-            } else {
-                replyIndicator.setVisibility(View.GONE);
-            }
-
             contentText.setText(comment.getContent());
 
             SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());

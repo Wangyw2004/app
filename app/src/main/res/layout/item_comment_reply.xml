@@ -49,14 +49,18 @@
         android:textSize="13sp"
         android:lineSpacingExtra="2dp" />
 
+    <!-- 回复按钮 - 与一级评论样式一致 -->
     <TextView
         android:id="@+id/replyToReplyButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="回复"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:textColor="@android:color/holo_blue_dark"
-        android:padding="4dp" />
+        android:padding="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground" />
 
 </LinearLayout>

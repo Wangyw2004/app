@@ -12,12 +12,14 @@ public class CommentRepository {
     private static CommentRepository instance;
     private CommentDataSource dataSource;
     private MutableLiveData<List<Comment>> commentsLiveData;
+    private MutableLiveData<List<Comment>> repliesLiveData;
     private MutableLiveData<Boolean> isLoading;
     private MutableLiveData<String> errorMessage;
 
     private CommentRepository(Context context) {
         dataSource = CommentDataSource.getInstance(context);
         commentsLiveData = new MutableLiveData<>();
+        repliesLiveData = new MutableLiveData<>();
         isLoading = new MutableLiveData<>(false);
         errorMessage = new MutableLiveData<>();
     }
@@ -33,6 +35,10 @@ public class CommentRepository {
         return commentsLiveData;
     }
 
+    public LiveData<List<Comment>> getReplies() {
+        return repliesLiveData;
+    }
+
     public LiveData<Boolean> getIsLoading() {
         return isLoading;
     }
@@ -41,10 +47,10 @@ public class CommentRepository {
         return errorMessage;
     }
 
-    public void loadCommentsByPostId(String postId) {
+    public void loadCommentTree(String postId) {
         isLoading.setValue(true);
         try {
-            List<Comment> comments = dataSource.getCommentsByPostId(postId);
+            List<Comment> comments = dataSource.getCommentTreeByPostId(postId);
             commentsLiveData.setValue(comments);
         } catch (Exception e) {
             errorMessage.setValue("加载评论失败: " + e.getMessage());
@@ -53,35 +59,67 @@ public class CommentRepository {
         }
     }
 
-    public void addComment(String postId, String content, String authorId, String authorName) {
-        if (content == null || content.trim().isEmpty()) {
-            errorMessage.setValue("评论内容不能为空");
-            return;
-        }
-
+    public void loadReplies(String parentId) {
+        isLoading.setValue(true);
         try {
-            String commentId = UUID.randomUUID().toString();
-            Comment newComment = new Comment(commentId, postId, content, authorName, authorId);
-            dataSource.addComment(newComment);
-            loadCommentsByPostId(postId);
+            List<Comment> replies = dataSource.getRepliesByParentId(parentId);
+            repliesLiveData.setValue(replies);
         } catch (Exception e) {
-            errorMessage.setValue("发布评论失败: " + e.getMessage());
+            errorMessage.setValue("加载回复失败: " + e.getMessage());
+        } finally {
+            isLoading.setValue(false);
         }
     }
 
-    public void addReply(String postId, String content, String authorId, String authorName,
-                         String parentId, String replyTo, String replyToId) {
+    // 发布一级评论（回复帖子）
+    public void addPostComment(String postId, String content, String authorId, String authorName) {
         if (content == null || content.trim().isEmpty()) {
-            errorMessage.setValue("回复内容不能为空");
+            errorMessage.setValue("内容不能为空");
             return;
         }
+        try {
+            String commentId = UUID.randomUUID().toString();
+            Comment comment = new Comment(commentId, postId, content, authorName, authorId);
+            dataSource.addComment(comment);
+            loadCommentTree(postId);
+        } catch (Exception e) {
+            errorMessage.setValue("发布失败: " + e.getMessage());
+        }
+    }
 
+    // 回复一级评论（不加@）
+    public void replyToComment(String postId, String content, String authorId, String authorName,
+                               String parentId, String replyToId, String replyToName) {
+        if (content == null || content.trim().isEmpty()) {
+            errorMessage.setValue("内容不能为空");
+            return;
+        }
         try {
             String commentId = UUID.randomUUID().toString();
             Comment reply = new Comment(commentId, postId, content, authorName, authorId,
-                    parentId, replyTo, replyToId);
+                    parentId, replyToId, replyToName);
             dataSource.addComment(reply);
-            loadCommentsByPostId(postId);
+            loadCommentTree(postId);
+            loadReplies(parentId);
+        } catch (Exception e) {
+            errorMessage.setValue("回复失败: " + e.getMessage());
+        }
+    }
+
+    // 回复二级评论（需要@）
+    public void replyToReply(String postId, String content, String authorId, String authorName,
+                             String parentId, String replyToId, String replyToName) {
+        if (content == null || content.trim().isEmpty()) {
+            errorMessage.setValue("内容不能为空");
+            return;
+        }
+        try {
+            String commentId = UUID.randomUUID().toString();
+            Comment reply = new Comment(commentId, postId, content, authorName, authorId,
+                    parentId, replyToId, replyToName);
+            dataSource.addComment(reply);
+            loadCommentTree(postId);
+            loadReplies(parentId);
         } catch (Exception e) {
             errorMessage.setValue("回复失败: " + e.getMessage());
         }
@@ -90,13 +128,12 @@ public class CommentRepository {
     public void deleteComment(String commentId, String userId) {
         boolean success = dataSource.deleteComment(commentId, userId);
         if (success) {
-            // 刷新当前显示的评论列表
             List<Comment> currentComments = commentsLiveData.getValue();
             if (currentComments != null && !currentComments.isEmpty()) {
-                loadCommentsByPostId(currentComments.get(0).getPostId());
+                loadCommentTree(currentComments.get(0).getPostId());
             }
         } else {
-            errorMessage.setValue("删除失败：无权删除或评论不存在");
+            errorMessage.setValue("删除失败");
         }
     }
 
@@ -109,18 +146,8 @@ public class CommentRepository {
         }
     }
 
-    public void getRepliesByParentId(String parentId, OnRepliesLoadedListener listener) {
-        List<Comment> replies = dataSource.getRepliesByParentId(parentId);
-        listener.onSuccess(replies);
-    }
-
     public interface OnCommentLoadedListener {
         void onSuccess(Comment comment);
-        void onError(String error);
-    }
-
-    public interface OnRepliesLoadedListener {
-        void onSuccess(List<Comment> replies);
         void onError(String error);
     }
 }

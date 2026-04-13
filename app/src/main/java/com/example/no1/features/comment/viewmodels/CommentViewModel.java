@@ -16,6 +16,9 @@ public class CommentViewModel extends AndroidViewModel {
     private MutableLiveData<String> contentError = new MutableLiveData<>();
     private MutableLiveData<Comment> replyingTo = new MutableLiveData<>(null);
     private MutableLiveData<Boolean> isReplying = new MutableLiveData<>(false);
+    private MutableLiveData<String> replyParentId = new MutableLiveData<>();
+    private MutableLiveData<String> replyToId = new MutableLiveData<>();
+    private MutableLiveData<String> replyToName = new MutableLiveData<>();
 
     public CommentViewModel(Application application) {
         super(application);
@@ -70,13 +73,28 @@ public class CommentViewModel extends AndroidViewModel {
         replyingTo.setValue(comment);
         isReplying.setValue(comment != null);
         if (comment != null) {
+            replyParentId.setValue(comment.getId());
+            replyToId.setValue(comment.getAuthorId());
+            replyToName.setValue(null);  // 回复一级评论不加@
             commentContent.setValue("");
         }
+    }
+
+    public void setReplyToReply(Comment reply) {
+        replyingTo.setValue(reply);
+        isReplying.setValue(true);
+        replyParentId.setValue(reply.getParentId());  // parentId是一级评论的ID
+        replyToId.setValue(reply.getAuthorId());
+        replyToName.setValue(reply.getAuthor());      // 回复二级评论需要@
+        commentContent.setValue("");
     }
 
     public void cancelReply() {
         replyingTo.setValue(null);
         isReplying.setValue(false);
+        replyParentId.setValue(null);
+        replyToId.setValue(null);
+        replyToName.setValue(null);
         commentContent.setValue("");
         contentError.setValue(null);
     }
@@ -84,7 +102,7 @@ public class CommentViewModel extends AndroidViewModel {
     public void loadComments() {
         String currentPostId = postId.getValue();
         if (currentPostId != null && !currentPostId.isEmpty()) {
-            repository.loadCommentsByPostId(currentPostId);
+            repository.loadCommentTree(currentPostId);
         }
     }
 
@@ -95,12 +113,10 @@ public class CommentViewModel extends AndroidViewModel {
         if (currentPostId == null || currentPostId.isEmpty()) {
             return;
         }
-
         if (currentContent == null || currentContent.trim().isEmpty()) {
             contentError.setValue("请输入内容");
             return;
         }
-
         if (currentContent.length() > 200) {
             contentError.setValue("内容不能超过200个字符");
             return;
@@ -109,11 +125,17 @@ public class CommentViewModel extends AndroidViewModel {
         Comment replying = replyingTo.getValue();
 
         if (replying != null) {
-            repository.addReply(currentPostId, currentContent, authorId, authorName,
-                    replying.getId(), replying.getAuthor(), replying.getAuthorId());
+            // 回复评论
+            String parentId = replyParentId.getValue();
+            String toId = replyToId.getValue();
+            String toName = replyToName.getValue();
+
+            repository.replyToComment(currentPostId, currentContent, authorId, authorName,
+                    parentId, toId, toName);
             cancelReply();
         } else {
-            repository.addComment(currentPostId, currentContent, authorId, authorName);
+            // 发布新评论
+            repository.addPostComment(currentPostId, currentContent, authorId, authorName);
         }
 
         commentContent.setValue("");

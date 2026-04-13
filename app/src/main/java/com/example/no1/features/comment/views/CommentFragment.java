@@ -73,13 +73,7 @@ public class CommentFragment extends Fragment {
         if (postId != null) {
             viewModel.setPostId(postId);
         }
-        // 测试：确保输入框存在
-        EditText testInput = view.findViewById(R.id.commentInput);
-        if (testInput == null) {
-            Toast.makeText(getContext(), "输入框为空！请检查布局", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(getContext(), "输入框正常", Toast.LENGTH_SHORT).show();
-        }
+
         return view;
     }
 
@@ -96,10 +90,6 @@ public class CommentFragment extends Fragment {
         if (recyclerView != null) {
             recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         }
-
-        // 调试日志
-        android.util.Log.d("CommentFragment", "submitButton is " + (submitButton != null ? "found" : "null"));
-        android.util.Log.d("CommentFragment", "commentInput is " + (commentInput != null ? "found" : "null"));
     }
 
     private void setupViewModel() {
@@ -121,10 +111,10 @@ public class CommentFragment extends Fragment {
                 if (adapter == null) {
                     adapter = new CommentAdapter(comments, postId, currentUserId,
                             comment -> {
+                                // 回复一级评论
                                 if (sessionManager.isLoggedIn()) {
                                     viewModel.setReplyingTo(comment);
                                     commentInput.requestFocus();
-                                    // 显示软键盘
                                     InputMethodManager imm = (InputMethodManager)
                                             requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
                                     imm.showSoftInput(commentInput, InputMethodManager.SHOW_IMPLICIT);
@@ -174,36 +164,31 @@ public class CommentFragment extends Fragment {
     }
 
     private void setupListeners() {
-        if (submitButton != null) {
-            submitButton.setOnClickListener(v -> {
-                if (sessionManager.isLoggedIn()) {
-                    String content = commentInput.getText().toString().trim();
-                    if (content.isEmpty()) {
-                        Toast.makeText(getContext(), "请输入内容", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    viewModel.setCommentContent(content);
-                    viewModel.addComment(
-                            sessionManager.getUsername(),
-                            sessionManager.getDisplayName()
-                    );
-                    commentInput.setText("");
-
-                    // 隐藏软键盘
-                    InputMethodManager imm = (InputMethodManager)
-                            requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(commentInput.getWindowToken(), 0);
-                } else {
-                    Toast.makeText(getContext(), "登录后才能评论哦~", Toast.LENGTH_SHORT).show();
+        submitButton.setOnClickListener(v -> {
+            if (sessionManager.isLoggedIn()) {
+                String content = commentInput.getText().toString().trim();
+                if (content.isEmpty()) {
+                    Toast.makeText(getContext(), "请输入内容", Toast.LENGTH_SHORT).show();
+                    return;
                 }
-            });
-        }
+                viewModel.setCommentContent(content);
+                viewModel.addComment(
+                        sessionManager.getUsername(),
+                        sessionManager.getDisplayName()
+                );
+                commentInput.setText("");
 
-        if (cancelReplyButton != null) {
-            cancelReplyButton.setOnClickListener(v -> {
-                viewModel.cancelReply();
-            });
-        }
+                InputMethodManager imm = (InputMethodManager)
+                        requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(commentInput.getWindowToken(), 0);
+            } else {
+                Toast.makeText(getContext(), "登录后才能评论哦~", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        cancelReplyButton.setOnClickListener(v -> {
+            viewModel.cancelReply();
+        });
     }
 
     private void showDeleteConfirmDialog(Comment comment, int position) {

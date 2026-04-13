@@ -72,40 +72,48 @@ public class CommentDetailViewModel extends AndroidViewModel {
         if (currentCommentId == null) return;
 
         isLoading.setValue(true);
-        repository.getRepliesByParentId(currentCommentId, new CommentRepository.OnRepliesLoadedListener() {
-            @Override
-            public void onSuccess(List<Comment> repliesList) {
-                replies.setValue(repliesList);
-                isLoading.setValue(false);
-            }
+        repository.loadReplies(currentCommentId);
 
-            @Override
-            public void onError(String error) {
-                errorMessage.setValue(error);
+        repository.getReplies().observeForever(repliesList -> {
+            if (repliesList != null) {
+                replies.setValue(repliesList);
                 isLoading.setValue(false);
             }
         });
     }
 
-    public void addReply(String content, String authorId, String authorName,
-                         String parentId, String replyTo, String replyToId) {
+    // 回复一级评论（不加@）
+    public void replyToComment(String content, String authorId, String authorName,
+                               String parentId, String replyToId, String replyToName) {
         String currentPostId = postId.getValue();
         if (currentPostId == null) return;
 
-        if (content == null || content.trim().isEmpty()) {
-            errorMessage.setValue("回复内容不能为空");
-            return;
-        }
+        repository.replyToComment(currentPostId, content, authorId, authorName,
+                parentId, replyToId, replyToName);
 
-        repository.addReply(currentPostId, content, authorId, authorName,
-                parentId, replyTo, replyToId);
+        new android.os.Handler().postDelayed(() -> {
+            loadReplies();
+        }, 500);
+    }
 
-        // 刷新回复列表
-        loadReplies();
+    // 回复二级评论（需要@）
+    public void replyToReply(String content, String authorId, String authorName,
+                             String parentId, String replyToId, String replyToName) {
+        String currentPostId = postId.getValue();
+        if (currentPostId == null) return;
+
+        repository.replyToReply(currentPostId, content, authorId, authorName,
+                parentId, replyToId, replyToName);
+
+        new android.os.Handler().postDelayed(() -> {
+            loadReplies();
+        }, 500);
     }
 
     public void deleteReply(String replyId, String userId) {
         repository.deleteComment(replyId, userId);
-        loadReplies();
+        new android.os.Handler().postDelayed(() -> {
+            loadReplies();
+        }, 500);
     }
 }

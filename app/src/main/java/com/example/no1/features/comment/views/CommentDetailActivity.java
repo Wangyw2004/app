@@ -2,6 +2,7 @@ package com.example.no1.features.comment.views;
 
 import android.os.Bundle;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -35,10 +36,13 @@ public class CommentDetailActivity extends AppCompatActivity {
     private TextView emptyText;
     private EditText replyInput;
     private Button submitButton;
+    private TextView replyHint;
+    private View replyBar;
 
     private String postId;
     private String commentId;
     private Comment originalComment;
+    private Comment replyingToReply;  // 当前正在回复的二级评论
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +81,8 @@ public class CommentDetailActivity extends AppCompatActivity {
         emptyText = findViewById(R.id.emptyText);
         replyInput = findViewById(R.id.replyInput);
         submitButton = findViewById(R.id.submitButton);
+        replyBar = findViewById(R.id.replyBar);
+        replyHint = findViewById(R.id.replyHint);
 
         if (replyRecyclerView != null) {
             replyRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -118,10 +124,16 @@ public class CommentDetailActivity extends AppCompatActivity {
                 if (adapter == null) {
                     adapter = new CommentReplyAdapter(replies, currentUserId,
                             (reply, position) -> {
+                                // 点击回复按钮 - 回复二级评论
                                 if (sessionManager.isLoggedIn()) {
-                                    replyInput.setHint("回复 @" + reply.getAuthor() + "：");
-                                    replyInput.setTag(reply);
+                                    replyingToReply = reply;
+                                    // 显示回复提示栏
+                                    replyBar.setVisibility(View.VISIBLE);
+                                    replyHint.setText("正在回复 @" + reply.getAuthor());
                                     replyInput.requestFocus();
+                                    // 显示软键盘
+                                    InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                                    imm.showSoftInput(replyInput, InputMethodManager.SHOW_IMPLICIT);
                                 } else {
                                     Toast.makeText(this, "登录后才能回复哦~", Toast.LENGTH_SHORT).show();
                                 }
@@ -151,10 +163,8 @@ public class CommentDetailActivity extends AppCompatActivity {
 
     private void displayOriginalComment(Comment comment) {
         authorText.setText(comment.getAuthor());
-
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         timeText.setText(sdf.format(comment.getCreateTime()));
-
         contentText.setText(comment.getContent());
     }
 
@@ -167,30 +177,35 @@ public class CommentDetailActivity extends AppCompatActivity {
                     return;
                 }
 
-                Object replyTo = replyInput.getTag();
-                if (replyTo instanceof Comment) {
-                    Comment targetReply = (Comment) replyTo;
-                    viewModel.addReply(
+                if (replyingToReply != null) {
+                    // 回复二级评论（需要@）
+                    viewModel.replyToReply(
                             content,
                             sessionManager.getUsername(),
                             sessionManager.getDisplayName(),
-                            targetReply.getId(),
-                            targetReply.getAuthor(),
-                            targetReply.getAuthorId()
+                            replyingToReply.getParentId(),
+                            replyingToReply.getAuthorId(),
+                            replyingToReply.getAuthor()
                     );
-                    replyInput.setTag(null);
-                    replyInput.setHint("写回复...");
+                    // 隐藏回复提示栏
+                    replyBar.setVisibility(View.GONE);
+                    replyingToReply = null;
                 } else {
-                    viewModel.addReply(
+                    // 回复一级评论（不加@）
+                    viewModel.replyToComment(
                             content,
                             sessionManager.getUsername(),
                             sessionManager.getDisplayName(),
                             commentId,
-                            originalComment.getAuthor(),
-                            originalComment.getAuthorId()
+                            originalComment.getAuthorId(),
+                            null
                     );
                 }
                 replyInput.setText("");
+
+                // 隐藏软键盘
+                InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(replyInput.getWindowToken(), 0);
             } else {
                 Toast.makeText(this, "登录后才能回复哦~", Toast.LENGTH_SHORT).show();
             }
