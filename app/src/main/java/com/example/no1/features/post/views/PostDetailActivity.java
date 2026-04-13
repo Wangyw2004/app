@@ -3,15 +3,19 @@ package com.example.no1.features.post.views;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.no1.R;
 import com.example.no1.common.utils.UserSessionManager;
+import com.example.no1.features.comment.views.CommentFragment;
 import com.example.no1.features.post.models.Post;
 import com.example.no1.features.post.viewmodels.PostListViewModel;
+import com.google.android.material.tabs.TabLayout;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
@@ -26,10 +30,14 @@ public class PostDetailActivity extends AppCompatActivity {
     private TextView authorText;
     private TextView timeText;
     private TextView likeCountText;
+    private TabLayout tabLayout;
+    private View contentLayout;
+    private View fragmentContainer;
 
     private String postId;
     private Post currentPost;
     private MenuItem deleteMenuItem;
+    private CommentFragment commentFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +55,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
         initViews();
         setupToolbar();
+        setupTabs();
         setupViewModel();
         loadPostDetail();
     }
@@ -57,6 +66,9 @@ public class PostDetailActivity extends AppCompatActivity {
         authorText = findViewById(R.id.detailAuthor);
         timeText = findViewById(R.id.detailTime);
         likeCountText = findViewById(R.id.detailLikeCount);
+        tabLayout = findViewById(R.id.tabLayout);
+        contentLayout = findViewById(R.id.contentLayout);
+        fragmentContainer = findViewById(R.id.fragmentContainer);
     }
 
     private void setupToolbar() {
@@ -65,6 +77,48 @@ public class PostDetailActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("帖子详情");
+        }
+    }
+
+    private void setupTabs() {
+        tabLayout.addTab(tabLayout.newTab().setText("内容"));
+        tabLayout.addTab(tabLayout.newTab().setText("评论"));
+
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                int position = tab.getPosition();
+                if (position == 0) {
+                    // 显示内容
+                    contentLayout.setVisibility(View.VISIBLE);
+                    fragmentContainer.setVisibility(View.GONE);
+                } else {
+                    // 显示评论
+                    contentLayout.setVisibility(View.GONE);
+                    fragmentContainer.setVisibility(View.VISIBLE);
+                    showCommentFragment();
+                }
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
+
+        // 默认显示内容
+        contentLayout.setVisibility(View.VISIBLE);
+        fragmentContainer.setVisibility(View.GONE);
+    }
+
+    private void showCommentFragment() {
+        if (commentFragment == null) {
+            commentFragment = CommentFragment.newInstance(postId);
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(R.id.fragmentContainer, commentFragment)
+                    .commit();
         }
     }
 
@@ -152,13 +206,12 @@ public class PostDetailActivity extends AppCompatActivity {
         String currentUserId = sessionManager.getUsername();
         viewModel.deletePost(postId, currentUserId);
 
-        // 观察删除结果
         viewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "帖子已删除", Toast.LENGTH_SHORT).show();
-                finish(); // 返回列表页
+                finish();
             }
         });
 

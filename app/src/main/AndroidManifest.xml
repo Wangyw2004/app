@@ -32,5 +32,8 @@
         <activity
             android:name=".features.post.views.PostDetailActivity"
             android:exported="false" />
+        <activity
+            android:name=".features.comment.views.CommentDetailActivity"
+            android:exported="false" />
     </application>
 </manifest>
