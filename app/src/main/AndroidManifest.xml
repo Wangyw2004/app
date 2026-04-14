@@ -58,6 +58,13 @@
         <activity
             android:name=".features.service.views.AdminServiceDetailActivity"
             android:exported="false" />
+        <!-- 通知模块 -->
+        <activity
+            android:name=".features.notice.views.NoticeDetailActivity"
+            android:exported="false" />
 
+        <activity
+            android:name=".features.notice.views.PublishNoticeActivity"
+            android:exported="false" />
     </application>
 </manifest>

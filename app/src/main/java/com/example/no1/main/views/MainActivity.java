@@ -6,7 +6,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import com.example.no1.R;
 import com.example.no1.common.utils.UserSessionManager;
-import com.example.no1.features.counter.views.CounterFragment;
+import com.example.no1.features.notice.views.NoticeFragment;
 import com.example.no1.features.post.views.PostListFragment;
 import com.example.no1.features.profile.views.ProfileFragment;
 import com.example.no1.features.service.views.AdminServiceFragment;
@@ -35,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
         setupBottomNavigation();
 
         if (savedInstanceState == null) {
-            loadFragment(new CounterFragment());
-            bottomNavigationView.setSelectedItemId(R.id.nav_counter);
+            loadFragment(new NoticeFragment());
+            bottomNavigationView.setSelectedItemId(R.id.nav_notice);
         }
     }
 
@@ -48,8 +48,8 @@ public class MainActivity extends AppCompatActivity {
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
 
-            if (itemId == R.id.nav_counter) {
-                loadFragment(new CounterFragment());
+            if (itemId == R.id.nav_notice) {
+                loadFragment(new NoticeFragment());
                 return true;
             } else if (itemId == R.id.nav_posts) {
                 loadFragment(new PostListFragment());
