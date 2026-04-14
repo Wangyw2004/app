@@ -82,7 +82,6 @@ public class CommentDetailViewModel extends AndroidViewModel {
         });
     }
 
-    // 回复一级评论（不加@）
     public void replyToComment(String content, String authorId, String authorName,
                                String parentId, String replyToId, String replyToName) {
         String currentPostId = postId.getValue();
@@ -96,7 +95,6 @@ public class CommentDetailViewModel extends AndroidViewModel {
         }, 500);
     }
 
-    // 回复二级评论（需要@）
     public void replyToReply(String content, String authorId, String authorName,
                              String parentId, String replyToId, String replyToName) {
         String currentPostId = postId.getValue();
@@ -110,8 +108,8 @@ public class CommentDetailViewModel extends AndroidViewModel {
         }, 500);
     }
 
-    public void deleteReply(String replyId, String userId) {
-        repository.deleteComment(replyId, userId);
+    public void deleteReply(String replyId, String userId, boolean isAdmin) {
+        repository.deleteComment(replyId, userId, isAdmin);
         new android.os.Handler().postDelayed(() -> {
             loadReplies();
         }, 500);

@@ -71,7 +71,6 @@ public class CommentRepository {
         }
     }
 
-    // 发布一级评论（回复帖子）
     public void addPostComment(String postId, String content, String authorId, String authorName) {
         if (content == null || content.trim().isEmpty()) {
             errorMessage.setValue("内容不能为空");
@@ -87,7 +86,6 @@ public class CommentRepository {
         }
     }
 
-    // 回复一级评论（不加@）
     public void replyToComment(String postId, String content, String authorId, String authorName,
                                String parentId, String replyToId, String replyToName) {
         if (content == null || content.trim().isEmpty()) {
@@ -106,7 +104,6 @@ public class CommentRepository {
         }
     }
 
-    // 回复二级评论（需要@）
     public void replyToReply(String postId, String content, String authorId, String authorName,
                              String parentId, String replyToId, String replyToName) {
         if (content == null || content.trim().isEmpty()) {
@@ -125,15 +122,31 @@ public class CommentRepository {
         }
     }
 
-    public void deleteComment(String commentId, String userId) {
-        boolean success = dataSource.deleteComment(commentId, userId);
-        if (success) {
-            List<Comment> currentComments = commentsLiveData.getValue();
-            if (currentComments != null && !currentComments.isEmpty()) {
-                loadCommentTree(currentComments.get(0).getPostId());
+    /**
+     * 删除评论
+     * @param commentId 评论ID
+     * @param userId 当前用户ID
+     * @param isAdmin 是否是管理员
+     */
+    public void deleteComment(String commentId, String userId, boolean isAdmin) {
+        Comment comment = dataSource.getCommentById(commentId);
+        if (comment == null) {
+            errorMessage.setValue("评论不存在");
+            return;
+        }
+
+        if (isAdmin || comment.getAuthorId().equals(userId)) {
+            boolean success = dataSource.deleteComment(commentId, userId);
+            if (success) {
+                loadCommentTree(comment.getPostId());
+                if (comment.getParentId() != null) {
+                    loadReplies(comment.getParentId());
+                }
+            } else {
+                errorMessage.setValue("删除失败");
             }
         } else {
-            errorMessage.setValue("删除失败");
+            errorMessage.setValue("无权删除此评论");
         }
     }
 

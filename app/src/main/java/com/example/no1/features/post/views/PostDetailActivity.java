@@ -89,11 +89,9 @@ public class PostDetailActivity extends AppCompatActivity {
             public void onTabSelected(TabLayout.Tab tab) {
                 int position = tab.getPosition();
                 if (position == 0) {
-                    // 显示内容
                     contentLayout.setVisibility(View.VISIBLE);
                     fragmentContainer.setVisibility(View.GONE);
                 } else {
-                    // 显示评论
                     contentLayout.setVisibility(View.GONE);
                     fragmentContainer.setVisibility(View.VISIBLE);
                     showCommentFragment();
@@ -107,7 +105,6 @@ public class PostDetailActivity extends AppCompatActivity {
             public void onTabReselected(TabLayout.Tab tab) {}
         });
 
-        // 默认显示内容
         contentLayout.setVisibility(View.VISIBLE);
         fragmentContainer.setVisibility(View.GONE);
     }
@@ -157,10 +154,11 @@ public class PostDetailActivity extends AppCompatActivity {
 
     private void updateDeleteButtonVisibility(Post post) {
         String currentUserId = sessionManager.isLoggedIn() ? sessionManager.getUsername() : "";
+        boolean isAdmin = sessionManager.isAdmin();
 
         if (deleteMenuItem != null) {
-            boolean isAuthor = post.isAuthor(currentUserId);
-            deleteMenuItem.setVisible(isAuthor);
+            boolean canDelete = post.isAuthor(currentUserId) || isAdmin;
+            deleteMenuItem.setVisible(canDelete);
         }
     }
 
@@ -192,9 +190,16 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void showDeleteConfirmDialog() {
+        String message;
+        if (sessionManager.isAdmin() && !currentPost.isAuthor(sessionManager.getUsername())) {
+            message = "确定要删除《" + currentPost.getTitle() + "》吗？\n（管理员操作）删除后无法恢复。";
+        } else {
+            message = "确定要删除《" + currentPost.getTitle() + "》吗？\n删除后无法恢复。";
+        }
+
         new AlertDialog.Builder(this)
                 .setTitle("确认删除")
-                .setMessage("确定要删除《" + currentPost.getTitle() + "》吗？\n删除后无法恢复。")
+                .setMessage(message)
                 .setPositiveButton("删除", (dialog, which) -> {
                     deletePost();
                 })
@@ -204,7 +209,8 @@ public class PostDetailActivity extends AppCompatActivity {
 
     private void deletePost() {
         String currentUserId = sessionManager.getUsername();
-        viewModel.deletePost(postId, currentUserId);
+        boolean isAdmin = sessionManager.isAdmin();
+        viewModel.deletePost(postId, currentUserId, isAdmin);
 
         viewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {

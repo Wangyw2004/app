@@ -21,6 +21,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     private List<Comment> comments;
     private String currentUserId;
     private String postId;
+    private boolean isAdmin;
     private OnReplyClickListener replyListener;
     private OnDeleteClickListener deleteListener;
 
@@ -40,6 +41,12 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         this.currentUserId = currentUserId;
         this.replyListener = replyListener;
         this.deleteListener = deleteListener;
+        this.isAdmin = false;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.isAdmin = admin;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -124,7 +131,9 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
             timeText.setText(sdf.format(comment.getCreateTime()));
 
-            if (currentUserId != null && comment.isAuthor(currentUserId)) {
+            boolean canDelete = (currentUserId != null && comment.isAuthor(currentUserId)) || isAdmin;
+
+            if (canDelete) {
                 deleteIcon.setVisibility(View.VISIBLE);
                 deleteIcon.setOnClickListener(v -> {
                     if (deleteListener != null) {

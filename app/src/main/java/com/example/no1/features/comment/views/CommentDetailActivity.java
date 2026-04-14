@@ -36,13 +36,14 @@ public class CommentDetailActivity extends AppCompatActivity {
     private TextView emptyText;
     private EditText replyInput;
     private Button submitButton;
-    private TextView replyHint;
     private View replyBar;
+    private TextView replyHint;
+    private TextView cancelReplyButton;
 
     private String postId;
     private String commentId;
     private Comment originalComment;
-    private Comment replyingToReply;  // 当前正在回复的二级评论
+    private Comment replyingToReply;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +84,7 @@ public class CommentDetailActivity extends AppCompatActivity {
         submitButton = findViewById(R.id.submitButton);
         replyBar = findViewById(R.id.replyBar);
         replyHint = findViewById(R.id.replyHint);
+        cancelReplyButton = findViewById(R.id.cancelReplyButton);
 
         if (replyRecyclerView != null) {
             replyRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -120,18 +122,16 @@ public class CommentDetailActivity extends AppCompatActivity {
 
                 String currentUserId = sessionManager.isLoggedIn() ?
                         sessionManager.getUsername() : "";
+                boolean isAdmin = sessionManager.isAdmin();
 
                 if (adapter == null) {
                     adapter = new CommentReplyAdapter(replies, currentUserId,
                             (reply, position) -> {
-                                // 点击回复按钮 - 回复二级评论
                                 if (sessionManager.isLoggedIn()) {
                                     replyingToReply = reply;
-                                    // 显示回复提示栏
                                     replyBar.setVisibility(View.VISIBLE);
                                     replyHint.setText("正在回复 @" + reply.getAuthor());
                                     replyInput.requestFocus();
-                                    // 显示软键盘
                                     InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
                                     imm.showSoftInput(replyInput, InputMethodManager.SHOW_IMPLICIT);
                                 } else {
@@ -142,10 +142,12 @@ public class CommentDetailActivity extends AppCompatActivity {
                                 showDeleteConfirmDialog(reply, position);
                             }
                     );
+                    adapter.setAdmin(isAdmin);
                     replyRecyclerView.setAdapter(adapter);
                 } else {
                     adapter.updateReplies(replies);
                     adapter.updateCurrentUserId(currentUserId);
+                    adapter.setAdmin(isAdmin);
                 }
             }
         });
@@ -178,7 +180,6 @@ public class CommentDetailActivity extends AppCompatActivity {
                 }
 
                 if (replyingToReply != null) {
-                    // 回复二级评论（需要@）
                     viewModel.replyToReply(
                             content,
                             sessionManager.getUsername(),
@@ -187,11 +188,9 @@ public class CommentDetailActivity extends AppCompatActivity {
                             replyingToReply.getAuthorId(),
                             replyingToReply.getAuthor()
                     );
-                    // 隐藏回复提示栏
                     replyBar.setVisibility(View.GONE);
                     replyingToReply = null;
                 } else {
-                    // 回复一级评论（不加@）
                     viewModel.replyToComment(
                             content,
                             sessionManager.getUsername(),
@@ -203,12 +202,17 @@ public class CommentDetailActivity extends AppCompatActivity {
                 }
                 replyInput.setText("");
 
-                // 隐藏软键盘
                 InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(replyInput.getWindowToken(), 0);
             } else {
                 Toast.makeText(this, "登录后才能回复哦~", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        cancelReplyButton.setOnClickListener(v -> {
+            replyingToReply = null;
+            replyBar.setVisibility(View.GONE);
+            replyInput.setText("");
         });
     }
 
@@ -218,7 +222,8 @@ public class CommentDetailActivity extends AppCompatActivity {
                 .setMessage("确定要删除这条回复吗？")
                 .setPositiveButton("删除", (dialog, which) -> {
                     String currentUserId = sessionManager.getUsername();
-                    viewModel.deleteReply(reply.getId(), currentUserId);
+                    boolean isAdmin = sessionManager.isAdmin();
+                    viewModel.deleteReply(reply.getId(), currentUserId, isAdmin);
                     Toast.makeText(this, "回复已删除", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("取消", null)

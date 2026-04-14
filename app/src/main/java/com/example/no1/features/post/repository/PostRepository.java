@@ -67,7 +67,7 @@ public class PostRepository {
         Post newPost = new Post(postId, title, content, authorName, authorId);
 
         dataSource.addPost(newPost);
-        loadPosts(); // 刷新列表
+        loadPosts();
     }
 
     public void toggleLike(String postId, boolean isLiked) {
@@ -88,26 +88,31 @@ public class PostRepository {
             dataSource.savePosts(posts);
         }
     }
-    // 添加删除帖子方法
-    public void deletePost(String postId, String currentUserId) {
+
+    /**
+     * 删除帖子
+     * @param postId 帖子ID
+     * @param currentUserId 当前用户ID
+     * @param isAdmin 是否是管理员
+     */
+    public void deletePost(String postId, String currentUserId, boolean isAdmin) {
         List<Post> posts = postsLiveData.getValue();
         if (posts != null) {
-            // 查找帖子并验证作者
             for (Post post : posts) {
                 if (post.getId().equals(postId)) {
-                    if (!post.getAuthorId().equals(currentUserId)) {
+                    if (isAdmin || post.getAuthorId().equals(currentUserId)) {
+                        boolean success = dataSource.deletePost(postId);
+                        if (success) {
+                            loadPosts();
+                        } else {
+                            errorMessage.setValue("删除失败");
+                        }
+                        return;
+                    } else {
                         errorMessage.setValue("只能删除自己发布的帖子");
                         return;
                     }
-                    break;
                 }
-            }
-
-            boolean success = dataSource.deletePost(postId);
-            if (success) {
-                loadPosts(); // 刷新列表
-            } else {
-                errorMessage.setValue("删除失败");
             }
         }
     }

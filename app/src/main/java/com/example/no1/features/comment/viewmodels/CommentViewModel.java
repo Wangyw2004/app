@@ -75,7 +75,7 @@ public class CommentViewModel extends AndroidViewModel {
         if (comment != null) {
             replyParentId.setValue(comment.getId());
             replyToId.setValue(comment.getAuthorId());
-            replyToName.setValue(null);  // 回复一级评论不加@
+            replyToName.setValue(null);
             commentContent.setValue("");
         }
     }
@@ -83,9 +83,9 @@ public class CommentViewModel extends AndroidViewModel {
     public void setReplyToReply(Comment reply) {
         replyingTo.setValue(reply);
         isReplying.setValue(true);
-        replyParentId.setValue(reply.getParentId());  // parentId是一级评论的ID
+        replyParentId.setValue(reply.getParentId());
         replyToId.setValue(reply.getAuthorId());
-        replyToName.setValue(reply.getAuthor());      // 回复二级评论需要@
+        replyToName.setValue(reply.getAuthor());
         commentContent.setValue("");
     }
 
@@ -125,16 +125,21 @@ public class CommentViewModel extends AndroidViewModel {
         Comment replying = replyingTo.getValue();
 
         if (replying != null) {
-            // 回复评论
             String parentId = replyParentId.getValue();
             String toId = replyToId.getValue();
             String toName = replyToName.getValue();
 
-            repository.replyToComment(currentPostId, currentContent, authorId, authorName,
-                    parentId, toId, toName);
+            if (toName != null && !toName.isEmpty()) {
+                // 回复二级评论
+                repository.replyToReply(currentPostId, currentContent, authorId, authorName,
+                        parentId, toId, toName);
+            } else {
+                // 回复一级评论
+                repository.replyToComment(currentPostId, currentContent, authorId, authorName,
+                        parentId, toId, toName);
+            }
             cancelReply();
         } else {
-            // 发布新评论
             repository.addPostComment(currentPostId, currentContent, authorId, authorName);
         }
 
@@ -142,7 +147,7 @@ public class CommentViewModel extends AndroidViewModel {
         contentError.setValue(null);
     }
 
-    public void deleteComment(String commentId, String userId) {
-        repository.deleteComment(commentId, userId);
+    public void deleteComment(String commentId, String userId, boolean isAdmin) {
+        repository.deleteComment(commentId, userId, isAdmin);
     }
 }

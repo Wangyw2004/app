@@ -107,11 +107,11 @@ public class CommentFragment extends Fragment {
 
                 String currentUserId = sessionManager.isLoggedIn() ?
                         sessionManager.getUsername() : "";
+                boolean isAdmin = sessionManager.isAdmin();
 
                 if (adapter == null) {
                     adapter = new CommentAdapter(comments, postId, currentUserId,
                             comment -> {
-                                // 回复一级评论
                                 if (sessionManager.isLoggedIn()) {
                                     viewModel.setReplyingTo(comment);
                                     commentInput.requestFocus();
@@ -126,10 +126,12 @@ public class CommentFragment extends Fragment {
                                 showDeleteConfirmDialog(comment, position);
                             }
                     );
+                    adapter.setAdmin(isAdmin);
                     if (recyclerView != null) recyclerView.setAdapter(adapter);
                 } else {
                     adapter.updateComments(comments);
                     adapter.updateCurrentUserId(currentUserId);
+                    adapter.setAdmin(isAdmin);
                 }
             }
         });
@@ -197,7 +199,8 @@ public class CommentFragment extends Fragment {
                 .setMessage("确定要删除这条评论吗？")
                 .setPositiveButton("删除", (dialog, which) -> {
                     String currentUserId = sessionManager.getUsername();
-                    viewModel.deleteComment(comment.getId(), currentUserId);
+                    boolean isAdmin = sessionManager.isAdmin();
+                    viewModel.deleteComment(comment.getId(), currentUserId, isAdmin);
                     Toast.makeText(getContext(), "评论已删除", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("取消", null)

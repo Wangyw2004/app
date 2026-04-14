@@ -17,6 +17,7 @@ public class CommentReplyAdapter extends RecyclerView.Adapter<CommentReplyAdapte
 
     private List<Comment> replies;
     private String currentUserId;
+    private boolean isAdmin;
     private OnReplyClickListener replyListener;
     private OnDeleteClickListener deleteListener;
 
@@ -35,6 +36,12 @@ public class CommentReplyAdapter extends RecyclerView.Adapter<CommentReplyAdapte
         this.currentUserId = currentUserId;
         this.replyListener = replyListener;
         this.deleteListener = deleteListener;
+        this.isAdmin = false;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.isAdmin = admin;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -84,14 +91,11 @@ public class CommentReplyAdapter extends RecyclerView.Adapter<CommentReplyAdapte
 
         void bind(Comment reply, int position) {
             authorText.setText(reply.getAuthor());
-
-            // 显示内容（如果是回复二级评论，会显示@用户名）
             contentText.setText(reply.getDisplayContent());
 
             SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
             timeText.setText(sdf.format(reply.getCreateTime()));
 
-            // 回复按钮点击事件
             if (replyButton != null) {
                 replyButton.setOnClickListener(v -> {
                     if (replyListener != null) {
@@ -100,8 +104,9 @@ public class CommentReplyAdapter extends RecyclerView.Adapter<CommentReplyAdapte
                 });
             }
 
-            // 删除按钮
-            if (currentUserId != null && reply.isAuthor(currentUserId)) {
+            boolean canDelete = (currentUserId != null && reply.isAuthor(currentUserId)) || isAdmin;
+
+            if (canDelete) {
                 deleteIcon.setVisibility(View.VISIBLE);
                 deleteIcon.setOnClickListener(v -> {
                     if (deleteListener != null) {

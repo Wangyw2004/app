@@ -3,16 +3,22 @@ package com.example.no1.features.auth.views;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.no1.R;
 import com.example.no1.common.utils.UserSessionManager;
+import com.example.no1.features.auth.models.LoginResponse;
+import com.example.no1.features.auth.models.User;
 import com.example.no1.features.auth.viewmodels.LoginViewModel;
 import com.example.no1.main.views.MainActivity;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -21,9 +27,12 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameInput;
     private EditText passwordInput;
+    private TextInputLayout usernameLayout;
+    private TextInputLayout passwordLayout;
     private Button loginButton;
     private Button skipButton;
     private ProgressBar progressBar;
+    private TextView messageText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,8 +42,7 @@ public class LoginActivity extends AppCompatActivity {
         sessionManager = UserSessionManager.getInstance(this);
 
         if (sessionManager.isLoggedIn()) {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            navigateToMain();
             return;
         }
 
@@ -50,6 +58,13 @@ public class LoginActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.loginButton);
         skipButton = findViewById(R.id.skipButton);
         progressBar = findViewById(R.id.progressBar);
+        messageText = findViewById(R.id.messageText);
+
+        usernameLayout = findViewById(R.id.usernameLayout);
+        passwordLayout = findViewById(R.id.passwordLayout);
+
+        loginButton.setEnabled(false);
+        loginButton.setAlpha(0.6f);
     }
 
     private void setupViewModel() {
@@ -57,7 +72,14 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void setupObservers() {
-        // 关键：观察登录按钮状态
+        viewModel.getUsernameError().observe(this, error -> {
+            if (usernameLayout != null) usernameLayout.setError(error);
+        });
+
+        viewModel.getPasswordError().observe(this, error -> {
+            if (passwordLayout != null) passwordLayout.setError(error);
+        });
+
         viewModel.getIsLoginEnabled().observe(this, isEnabled -> {
             loginButton.setEnabled(isEnabled);
             loginButton.setAlpha(isEnabled ? 1.0f : 0.6f);
@@ -69,14 +91,15 @@ public class LoginActivity extends AppCompatActivity {
             loginButton.setText("登录");
 
             if (response != null && response.isSuccess()) {
+                User user = response.getUser();
                 sessionManager.saveUserSession(
-                        response.getUser().getUsername(),
-                        response.getUser().getDisplayName(),
-                        response.getToken()
+                        user.getUsername(),
+                        user.getDisplayName(),
+                        response.getToken(),
+                        user.getRole()
                 );
-                Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(this, MainActivity.class));
-                finish();
+                showMessage(response.getMessage(), true);
+                loginButton.postDelayed(this::navigateToMain, 1000);
             }
         });
 
@@ -85,7 +108,10 @@ public class LoginActivity extends AppCompatActivity {
             loginButton.setEnabled(true);
             loginButton.setText("登录");
             if (error != null && !error.isEmpty()) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                showMessage(error, false);
+                passwordInput.setText("");
+                viewModel.setPassword("");
+                passwordInput.requestFocus();
             }
         });
 
@@ -94,51 +120,74 @@ public class LoginActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.VISIBLE);
                 loginButton.setEnabled(false);
                 loginButton.setText("登录中...");
+                loginButton.setAlpha(0.6f);
+                skipButton.setEnabled(false);
+                skipButton.setAlpha(0.6f);
             } else {
                 progressBar.setVisibility(View.GONE);
-                loginButton.setEnabled(true);
+                loginButton.setEnabled(viewModel.getIsLoginEnabled().getValue() != null &&
+                        viewModel.getIsLoginEnabled().getValue());
                 loginButton.setText("登录");
+                loginButton.setAlpha(loginButton.isEnabled() ? 1.0f : 0.6f);
+                skipButton.setEnabled(true);
+                skipButton.setAlpha(1.0f);
             }
         });
     }
 
     private void setupListeners() {
-        // 用户名输入时更新ViewModel
         usernameInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 viewModel.setUsername(s.toString());
             }
-
-            @Override
-            public void afterTextChanged(android.text.Editable s) {}
+            @Override public void afterTextChanged(android.text.Editable s) {}
         });
 
-        // 密码输入时更新ViewModel
         passwordInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 viewModel.setPassword(s.toString());
             }
-
-            @Override
-            public void afterTextChanged(android.text.Editable s) {}
+            @Override public void afterTextChanged(android.text.Editable s) {}
         });
 
-        loginButton.setOnClickListener(v -> {
-            viewModel.login();
+        passwordInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE && loginButton.isEnabled()) {
+                viewModel.login();
+                return true;
+            }
+            return false;
         });
+
+        loginButton.setOnClickListener(v -> viewModel.login());
 
         skipButton.setOnClickListener(v -> {
             sessionManager.saveGuestSession();
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            navigateToMain();
         });
+    }
+
+    private void navigateToMain() {
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+    private void showMessage(String message, boolean isSuccess) {
+        messageText.setText(message);
+        messageText.setVisibility(View.VISIBLE);
+
+        if (isSuccess) {
+            messageText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark));
+        } else {
+            messageText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark));
+        }
+
+        messageText.postDelayed(() -> {
+            if (messageText != null) {
+                messageText.setVisibility(View.GONE);
+            }
+        }, 3000);
     }
 }

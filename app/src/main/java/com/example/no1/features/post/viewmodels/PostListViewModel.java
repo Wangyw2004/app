@@ -1,4 +1,5 @@
 package com.example.no1.features.post.viewmodels;
+
 import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -34,8 +35,8 @@ public class PostListViewModel extends AndroidViewModel {
     public void toggleLike(Post post) {
         repository.toggleLike(post.getId(), post.isLiked());
     }
-    // 添加删除帖子方法
-    public void deletePost(String postId, String currentUserId) {
-        repository.deletePost(postId, currentUserId);
+
+    public void deletePost(String postId, String currentUserId, boolean isAdmin) {
+        repository.deletePost(postId, currentUserId, isAdmin);
     }
 }
