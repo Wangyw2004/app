@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.No1">
+
         <activity
             android:name=".main.views.MainActivity"
             android:exported="true">
@@ -23,17 +21,43 @@
         <activity
             android:name=".features.auth.views.LoginActivity"
             android:exported="false" />
-        <!-- 发帖页面 -->
+
         <activity
             android:name=".features.post.views.CreatePostActivity"
             android:exported="false" />
 
-        <!-- 帖子详情页面 -->
         <activity
             android:name=".features.post.views.PostDetailActivity"
             android:exported="false" />
+
         <activity
             android:name=".features.comment.views.CommentDetailActivity"
             android:exported="false" />
+
+        <!-- 服务模块 -->
+        <activity
+            android:name=".features.service.views.ComplaintActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".features.service.views.RepairActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".features.service.views.ServiceRecordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".features.service.views.ServiceDetailActivity"
+            android:exported="false" />
+        <!-- 管理员模块 -->
+        <activity
+            android:name=".features.service.views.AdminServiceRecordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".features.service.views.AdminServiceDetailActivity"
+            android:exported="false" />
+
     </application>
 </manifest>

@@ -5,19 +5,25 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import com.example.no1.R;
+import com.example.no1.common.utils.UserSessionManager;
 import com.example.no1.features.counter.views.CounterFragment;
 import com.example.no1.features.post.views.PostListFragment;
 import com.example.no1.features.profile.views.ProfileFragment;
+import com.example.no1.features.service.views.AdminServiceFragment;
+import com.example.no1.features.service.views.ServiceFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavigationView;
+    private UserSessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        sessionManager = UserSessionManager.getInstance(this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -47,6 +53,14 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             } else if (itemId == R.id.nav_posts) {
                 loadFragment(new PostListFragment());
+                return true;
+            } else if (itemId == R.id.nav_service) {
+                // 根据用户角色显示不同的服务界面
+                if (sessionManager.isAdmin()) {
+                    loadFragment(new AdminServiceFragment());
+                } else {
+                    loadFragment(new ServiceFragment());
+                }
                 return true;
             } else if (itemId == R.id.nav_profile) {
                 loadFragment(new ProfileFragment());
