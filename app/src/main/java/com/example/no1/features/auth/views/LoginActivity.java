@@ -85,21 +85,21 @@ public class LoginActivity extends AppCompatActivity {
             loginButton.setAlpha(isEnabled ? 1.0f : 0.6f);
         });
 
+        // 在 setupObservers() 方法中，登录成功的观察者里
         viewModel.getLoginResult().observe(this, response -> {
-            progressBar.setVisibility(View.GONE);
-            loginButton.setEnabled(true);
-            loginButton.setText("登录");
-
             if (response != null && response.isSuccess()) {
                 User user = response.getUser();
                 sessionManager.saveUserSession(
                         user.getUsername(),
-                        user.getDisplayName(),
+                        user.getDisplayName(),  // 昵称
                         response.getToken(),
-                        user.getRole()
+                        user.getRole(),
+                        user.getEmail() != null ? user.getEmail() : "",
+                        "保密",  // 默认性别
+                        2000    // 默认出生年份
                 );
                 showMessage(response.getMessage(), true);
-                loginButton.postDelayed(this::navigateToMain, 1000);
+                navigateToMain();
             }
         });
 
