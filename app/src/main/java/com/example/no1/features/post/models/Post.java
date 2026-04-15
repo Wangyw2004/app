@@ -1,5 +1,8 @@
 package com.example.no1.features.post.models;
+
 import java.util.Date;
+import java.util.List;
+
 public class Post {
     private String id;
     private String title;
@@ -8,8 +11,9 @@ public class Post {
     private String authorId;
     private Date createTime;
     private int likeCount;
-    private int commentCount;
+    private int commentCount;  // 评论总数（一级+二级）
     private boolean isLiked;
+    private List<String> images;
 
     public Post() {}
 
@@ -24,6 +28,8 @@ public class Post {
         this.commentCount = 0;
         this.isLiked = false;
     }
+
+    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -50,11 +56,23 @@ public class Post {
 
     public boolean isLiked() { return isLiked; }
     public void setLiked(boolean liked) { isLiked = liked; }
-    // 判断当前用户是否是作者
+
+    public List<String> getImages() { return images; }
+    public void setImages(List<String> images) { this.images = images; }
+
     public boolean isAuthor(String userId) {
         return authorId != null && authorId.equals(userId);
     }
 
+    // 增加评论数
+    public void incrementCommentCount() {
+        this.commentCount++;
+    }
 
-
+    // 减少评论数
+    public void decrementCommentCount() {
+        if (this.commentCount > 0) {
+            this.commentCount--;
+        }
+    }
 }

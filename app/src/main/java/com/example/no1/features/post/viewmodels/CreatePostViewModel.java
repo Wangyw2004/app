@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.example.no1.features.post.repository.PostRepository;
+import java.util.List;
 
 public class CreatePostViewModel extends AndroidViewModel {
 
@@ -48,7 +49,8 @@ public class CreatePostViewModel extends AndroidViewModel {
         }
     }
 
-    public void createPost(String authorId, String authorName) {
+    // 修改这个方法，添加 images 参数
+    public void createPost(String authorId, String authorName, List<String> images) {
         String currentTitle = title.getValue();
         String currentContent = content.getValue();
 
@@ -65,7 +67,7 @@ public class CreatePostViewModel extends AndroidViewModel {
             return;
         }
 
-        repository.createPost(currentTitle, currentContent, authorId, authorName);
+        repository.createPost(currentTitle, currentContent, authorId, authorName, images);
         isCreated.setValue(true);
     }
 }

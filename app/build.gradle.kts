@@ -54,5 +54,11 @@ dependencies {
     implementation("androidx.cardview:cardview:1.0.0")
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.3.0")
+    // Glide 图片加载
+    implementation ("com.github.bumptech.glide:glide:4.15.1")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.15.1")
+
+    // ViewPager2
+    implementation ("androidx.viewpager2:viewpager2:1.0.0")
 
 }

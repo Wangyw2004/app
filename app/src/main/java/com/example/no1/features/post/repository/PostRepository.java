@@ -49,7 +49,7 @@ public class PostRepository {
         isLoading.setValue(false);
     }
 
-    public void createPost(String title, String content, String authorId, String authorName) {
+    public void createPost(String title, String content, String authorId, String authorName, List<String> images) {
         if (title == null || title.trim().isEmpty()) {
             errorMessage.setValue("标题不能为空");
             return;
@@ -65,7 +65,7 @@ public class PostRepository {
 
         String postId = UUID.randomUUID().toString();
         Post newPost = new Post(postId, title, content, authorName, authorId);
-
+        newPost.setImages(images);  // 保存图片
         dataSource.addPost(newPost);
         loadPosts();
     }
@@ -88,7 +88,35 @@ public class PostRepository {
             dataSource.savePosts(posts);
         }
     }
+    // 增加帖子评论数
+    public void incrementCommentCount(String postId) {
+        List<Post> posts = postsLiveData.getValue();
+        if (posts != null) {
+            for (Post post : posts) {
+                if (post.getId().equals(postId)) {
+                    post.incrementCommentCount();
+                    break;
+                }
+            }
+            postsLiveData.setValue(posts);
+            dataSource.savePosts(posts);
+        }
+    }
 
+    // 减少帖子评论数
+    public void decrementCommentCount(String postId) {
+        List<Post> posts = postsLiveData.getValue();
+        if (posts != null) {
+            for (Post post : posts) {
+                if (post.getId().equals(postId)) {
+                    post.decrementCommentCount();
+                    break;
+                }
+            }
+            postsLiveData.setValue(posts);
+            dataSource.savePosts(posts);
+        }
+    }
     /**
      * 删除帖子
      * @param postId 帖子ID

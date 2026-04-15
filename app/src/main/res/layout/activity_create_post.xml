@@ -22,12 +22,13 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- 标题 -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/titleLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:errorEnabled="true">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/titleInput"
@@ -39,27 +40,61 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- 内容 -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/contentLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:errorEnabled="true">
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/contentInput"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="150dp"
                     android:hint="内容"
                     android:gravity="top"
                     android:inputType="textMultiLine" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- 添加图片区域标题 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="添加图片"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="最多可选9张"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray"
+                android:layout_marginBottom="12dp" />
+
+            <!-- 图片列表容器（水平滚动）- 这里会显示已选图片和添加按钮 -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/imageContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+
+            </HorizontalScrollView>
+
+            <!-- 发布按钮 -->
             <Button
                 android:id="@+id/submitButton"
                 android:layout_width="match_parent"
-                android:layout_height="55dp"
+                android:layout_height="48dp"
                 android:text="发布"
                 android:textSize="16sp" />
 

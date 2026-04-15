@@ -4,18 +4,23 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
 import com.example.no1.R;
 import com.example.no1.common.utils.UserSessionManager;
 import com.example.no1.features.comment.views.CommentFragment;
+import com.example.no1.features.post.adapters.ImagePagerAdapter;
 import com.example.no1.features.post.models.Post;
 import com.example.no1.features.post.viewmodels.PostListViewModel;
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
@@ -33,6 +38,9 @@ public class PostDetailActivity extends AppCompatActivity {
     private TabLayout tabLayout;
     private View contentLayout;
     private View fragmentContainer;
+    private LinearLayout imageCarouselContainer;
+    private ViewPager2 viewPager;
+    private LinearLayout indicatorContainer;
 
     private String postId;
     private Post currentPost;
@@ -69,6 +77,9 @@ public class PostDetailActivity extends AppCompatActivity {
         tabLayout = findViewById(R.id.tabLayout);
         contentLayout = findViewById(R.id.contentLayout);
         fragmentContainer = findViewById(R.id.fragmentContainer);
+        imageCarouselContainer = findViewById(R.id.imageCarouselContainer);
+        viewPager = findViewById(R.id.viewPager);
+        indicatorContainer = findViewById(R.id.indicatorContainer);
     }
 
     private void setupToolbar() {
@@ -130,6 +141,7 @@ public class PostDetailActivity extends AppCompatActivity {
                     if (post.getId().equals(postId)) {
                         currentPost = post;
                         displayPost(post);
+                        displayImages(post);
                         updateDeleteButtonVisibility(post);
                         return;
                     }
@@ -150,6 +162,65 @@ public class PostDetailActivity extends AppCompatActivity {
         timeText.setText(sdf.format(post.getCreateTime()));
 
         likeCountText.setText("点赞 " + post.getLikeCount());
+    }
+
+    private void displayImages(Post post) {
+        List<String> images = post.getImages();
+        if (images != null && !images.isEmpty()) {
+            imageCarouselContainer.setVisibility(View.VISIBLE);
+
+            // 转换文件路径为可显示的路径
+            List<String> validPaths = new java.util.ArrayList<>();
+            for (String path : images) {
+                File file = new File(path);
+                if (file.exists()) {
+                    validPaths.add(path);
+                }
+            }
+
+            if (!validPaths.isEmpty()) {
+                // 修复：只传入 validPaths，不传入 this
+                ImagePagerAdapter adapter = new ImagePagerAdapter(validPaths);
+                viewPager.setAdapter(adapter);
+
+                // 添加指示器
+                addIndicators(validPaths.size());
+
+                viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+                    @Override
+                    public void onPageSelected(int position) {
+                        updateIndicators(position);
+                    }
+                });
+            } else {
+                imageCarouselContainer.setVisibility(View.GONE);
+            }
+        } else {
+            imageCarouselContainer.setVisibility(View.GONE);
+        }
+    }
+
+    private void addIndicators(int count) {
+        indicatorContainer.removeAllViews();
+        for (int i = 0; i < count; i++) {
+            View indicator = new View(this);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(16, 16);
+            params.setMargins(8, 0, 8, 0);
+            indicator.setLayoutParams(params);
+            indicator.setBackgroundResource(android.R.drawable.presence_online);
+            indicator.setAlpha(0.4f);
+            indicatorContainer.addView(indicator);
+        }
+        if (count > 0) {
+            updateIndicators(0);
+        }
+    }
+
+    private void updateIndicators(int position) {
+        for (int i = 0; i < indicatorContainer.getChildCount(); i++) {
+            View indicator = indicatorContainer.getChildAt(i);
+            indicator.setAlpha(i == position ? 1.0f : 0.4f);
+        }
     }
 
     private void updateDeleteButtonVisibility(Post post) {
@@ -222,5 +293,13 @@ public class PostDetailActivity extends AppCompatActivity {
         });
 
         viewModel.loadPosts();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (tabLayout.getSelectedTabPosition() == 1 && commentFragment != null) {
+            commentFragment.refreshComments();
+        }
     }
 }

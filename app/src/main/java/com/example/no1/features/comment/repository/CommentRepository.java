@@ -5,12 +5,14 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.example.no1.features.comment.data.CommentDataSource;
 import com.example.no1.features.comment.models.Comment;
+import com.example.no1.features.post.repository.PostRepository;
 import java.util.List;
 import java.util.UUID;
 
 public class CommentRepository {
     private static CommentRepository instance;
     private CommentDataSource dataSource;
+    private PostRepository postRepository;  // 添加 PostRepository 引用
     private MutableLiveData<List<Comment>> commentsLiveData;
     private MutableLiveData<List<Comment>> repliesLiveData;
     private MutableLiveData<Boolean> isLoading;
@@ -18,6 +20,7 @@ public class CommentRepository {
 
     private CommentRepository(Context context) {
         dataSource = CommentDataSource.getInstance(context);
+        postRepository = PostRepository.getInstance(context);  // 初始化
         commentsLiveData = new MutableLiveData<>();
         repliesLiveData = new MutableLiveData<>();
         isLoading = new MutableLiveData<>(false);
@@ -80,6 +83,10 @@ public class CommentRepository {
             String commentId = UUID.randomUUID().toString();
             Comment comment = new Comment(commentId, postId, content, authorName, authorId);
             dataSource.addComment(comment);
+
+            // 增加帖子的评论数
+            postRepository.incrementCommentCount(postId);
+
             loadCommentTree(postId);
         } catch (Exception e) {
             errorMessage.setValue("发布失败: " + e.getMessage());
@@ -97,6 +104,10 @@ public class CommentRepository {
             Comment reply = new Comment(commentId, postId, content, authorName, authorId,
                     parentId, replyToId, replyToName);
             dataSource.addComment(reply);
+
+            // 增加帖子的评论数（二级评论也要增加）
+            postRepository.incrementCommentCount(postId);
+
             loadCommentTree(postId);
             loadReplies(parentId);
         } catch (Exception e) {
@@ -115,6 +126,10 @@ public class CommentRepository {
             Comment reply = new Comment(commentId, postId, content, authorName, authorId,
                     parentId, replyToId, replyToName);
             dataSource.addComment(reply);
+
+            // 增加帖子的评论数
+            postRepository.incrementCommentCount(postId);
+
             loadCommentTree(postId);
             loadReplies(parentId);
         } catch (Exception e) {
@@ -136,8 +151,16 @@ public class CommentRepository {
         }
 
         if (isAdmin || comment.getAuthorId().equals(userId)) {
+            // 获取被删除评论及其所有子评论的数量
+            int deleteCount = getDeleteCount(comment);
+
             boolean success = dataSource.deleteComment(commentId, userId);
             if (success) {
+                // 减少帖子的评论数（删除的数量）
+                for (int i = 0; i < deleteCount; i++) {
+                    postRepository.decrementCommentCount(comment.getPostId());
+                }
+
                 loadCommentTree(comment.getPostId());
                 if (comment.getParentId() != null) {
                     loadReplies(comment.getParentId());
@@ -148,6 +171,18 @@ public class CommentRepository {
         } else {
             errorMessage.setValue("无权删除此评论");
         }
+    }
+
+    // 获取要删除的评论数量（包括所有子回复）
+    private int getDeleteCount(Comment comment) {
+        int count = 1; // 自身
+        List<Comment> replies = dataSource.getRepliesByParentId(comment.getId());
+        if (replies != null) {
+            for (Comment reply : replies) {
+                count += getDeleteCount(reply);
+            }
+        }
+        return count;
     }
 
     public void getCommentById(String commentId, OnCommentLoadedListener listener) {
