@@ -66,5 +66,20 @@
         <activity
             android:name=".features.notice.views.PublishNoticeActivity"
             android:exported="false" />
+        <!-- 精品帖子模块 -->
+        <activity
+            android:name=".features.featured.views.SubmitFeaturedActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".features.featured.views.FeaturedDetailActivity"
+            android:exported="false" />
+        <!-- 添加注册页面 -->
+        <activity
+            android:name=".features.auth.views.RegisterActivity"
+            android:exported="false" />
+        <activity
+            android:name=".features.admin.views.UserManagementActivity"
+            android:exported="false" />
     </application>
 </manifest>

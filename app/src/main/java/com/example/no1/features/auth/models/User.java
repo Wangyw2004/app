@@ -6,8 +6,9 @@ public class User {
     private String token;
     private String email;
     private String displayName;
+    private String phone;
     private String avatar;
-    private String role;      // "user" 普通用户, "admin" 管理员
+    private String role;
     private long createTime;
 
     public User(String username, String token) {
@@ -18,10 +19,11 @@ public class User {
         this.createTime = System.currentTimeMillis();
     }
 
-    public User(String username, String email, String displayName, String token, String role) {
+    public User(String username, String email, String displayName, String phone, String token, String role) {
         this.username = username;
         this.email = email;
         this.displayName = displayName;
+        this.phone = phone;
         this.token = token;
         this.role = role != null ? role : "user";
         this.createTime = System.currentTimeMillis();
@@ -48,6 +50,9 @@ public class User {
     public String getDisplayName() { return displayName; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }
 
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
 
@@ -61,6 +66,11 @@ public class User {
         return "admin".equals(role);
     }
 
+    public boolean isValid() {
+        return username != null && !username.trim().isEmpty() &&
+                token != null && !token.trim().isEmpty();
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -68,10 +78,5 @@ public class User {
                 ", displayName='" + displayName + '\'' +
                 ", role='" + role + '\'' +
                 '}';
-    }
-
-    public boolean isValid() {
-        return username != null && !username.trim().isEmpty() &&
-                token != null && !token.trim().isEmpty();
     }
 }

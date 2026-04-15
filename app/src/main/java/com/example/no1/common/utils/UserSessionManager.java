@@ -13,7 +13,11 @@ public class UserSessionManager {
     private static final String KEY_EMAIL = "email";
     private static final String KEY_GENDER = "gender";
     private static final String KEY_BIRTH_YEAR = "birth_year";
+    private static final String KEY_PHONE = "phone";
 
+    public String getPhone() {
+        return sharedPreferences.getString(KEY_PHONE, "");
+    }
     private static UserSessionManager instance;
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
@@ -31,7 +35,7 @@ public class UserSessionManager {
     }
 
     public void saveUserSession(String username, String nickname, String token, String role,
-                                String email, String gender, int birthYear) {
+                                String email, String gender, int birthYear, String phone) {
         editor.putBoolean(KEY_IS_LOGGED_IN, true);
         editor.putString(KEY_USERNAME, username);
         editor.putString(KEY_NICKNAME, nickname != null ? nickname : username);
@@ -40,13 +44,22 @@ public class UserSessionManager {
         editor.putString(KEY_EMAIL, email != null ? email : "");
         editor.putString(KEY_GENDER, gender != null ? gender : "保密");
         editor.putInt(KEY_BIRTH_YEAR, birthYear > 0 ? birthYear : 2000);
+        editor.putString(KEY_PHONE, phone != null ? phone : "");
         editor.apply();
     }
 
     public void saveGuestSession() {
+        if (editor == null) return;
+        editor.clear();  // ✅ 先清除所有数据
         editor.putBoolean(KEY_IS_LOGGED_IN, false);
+        editor.putString(KEY_USERNAME, "guest");
         editor.putString(KEY_NICKNAME, "游客");
+        editor.putString(KEY_TOKEN, "");
         editor.putString(KEY_ROLE, "guest");
+        editor.putString(KEY_EMAIL, "");
+        editor.putString(KEY_GENDER, "保密");
+        editor.putInt(KEY_BIRTH_YEAR, 2000);
+        editor.putString(KEY_PHONE, "");
         editor.apply();
     }
 
@@ -101,8 +114,9 @@ public class UserSessionManager {
     }
 
     public void logout() {
-        editor.clear();
-        editor.apply();
+        if (editor == null) return;
+        editor.clear().commit();
+        // 退出登录后自动保存游客会话
         saveGuestSession();
     }
 }

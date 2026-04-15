@@ -33,18 +33,24 @@ public class LoginActivity extends AppCompatActivity {
     private Button skipButton;
     private ProgressBar progressBar;
     private TextView messageText;
+    private TextView tvRegister;
+
+    // 添加标志，防止自动点击
+    private boolean isSkipButtonClicked = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        sessionManager = UserSessionManager.getInstance(this);
-
-        if (sessionManager.isLoggedIn()) {
-            navigateToMain();
+        // 清除任务栈，确保不会回到之前的Activity
+        if (getIntent() != null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) {
+            finish();
             return;
         }
+
+        sessionManager = UserSessionManager.getInstance(this);
+        android.util.Log.d("LoginActivity", "isLoggedIn: " + sessionManager.isLoggedIn());
 
         initViews();
         setupViewModel();
@@ -59,12 +65,16 @@ public class LoginActivity extends AppCompatActivity {
         skipButton = findViewById(R.id.skipButton);
         progressBar = findViewById(R.id.progressBar);
         messageText = findViewById(R.id.messageText);
-
         usernameLayout = findViewById(R.id.usernameLayout);
         passwordLayout = findViewById(R.id.passwordLayout);
+        tvRegister = findViewById(R.id.tvRegister);
 
         loginButton.setEnabled(false);
         loginButton.setAlpha(0.6f);
+        // 关键：禁用 skipButton 的自动焦点和自动点击
+        skipButton.setFocusable(false);
+        skipButton.setFocusableInTouchMode(false);
+        skipButton.setClickable(true);  // 保持可点击
     }
 
     private void setupViewModel() {
@@ -85,18 +95,22 @@ public class LoginActivity extends AppCompatActivity {
             loginButton.setAlpha(isEnabled ? 1.0f : 0.6f);
         });
 
-        // 在 setupObservers() 方法中，登录成功的观察者里
         viewModel.getLoginResult().observe(this, response -> {
+            progressBar.setVisibility(View.GONE);
+            loginButton.setEnabled(true);
+            loginButton.setText("登录");
+
             if (response != null && response.isSuccess()) {
                 User user = response.getUser();
                 sessionManager.saveUserSession(
                         user.getUsername(),
-                        user.getDisplayName(),  // 昵称
+                        user.getDisplayName(),
                         response.getToken(),
                         user.getRole(),
                         user.getEmail() != null ? user.getEmail() : "",
-                        "保密",  // 默认性别
-                        2000    // 默认出生年份
+                        "保密",
+                        2000,
+                        user.getPhone() != null ? user.getPhone() : ""
                 );
                 showMessage(response.getMessage(), true);
                 navigateToMain();
@@ -162,14 +176,26 @@ public class LoginActivity extends AppCompatActivity {
 
         loginButton.setOnClickListener(v -> viewModel.login());
 
+        // 修改 skipButton，添加标志防止自动点击
         skipButton.setOnClickListener(v -> {
-            sessionManager.saveGuestSession();
-            navigateToMain();
+            if (!isSkipButtonClicked) {
+                isSkipButtonClicked = true;
+                android.util.Log.d("LoginActivity", "skipButton clicked by user");
+                sessionManager.saveGuestSession();
+                navigateToMain();
+            }
+        });
+
+        tvRegister.setOnClickListener(v -> {
+            Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
+            startActivity(intent);
         });
     }
 
     private void navigateToMain() {
+        android.util.Log.d("LoginActivity", "navigateToMain called");
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }

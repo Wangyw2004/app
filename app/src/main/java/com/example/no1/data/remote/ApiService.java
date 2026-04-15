@@ -1,53 +1,28 @@
 package com.example.no1.data.remote;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import com.example.no1.data.local.UserDataSource;
 import com.example.no1.features.auth.models.LoginRequest;
 import com.example.no1.features.auth.models.LoginResponse;
 import com.example.no1.features.auth.models.User;
-import java.util.HashMap;
-import java.util.Map;
 
 public class ApiService {
 
     private static final int NETWORK_DELAY_MS = 1500;
-
-    private static final Map<String, UserInfo> VALID_USERS = new HashMap<>();
-
-    static {
-        // 普通用户
-        VALID_USERS.put("test", new UserInfo("test", "123456", "test@example.com", "测试用户", "user", true));
-        VALID_USERS.put("user1", new UserInfo("user1", "123456", "user1@example.com", "普通用户1", "user", true));
-        VALID_USERS.put("user2", new UserInfo("user2", "123456", "user2@example.com", "普通用户2", "user", true));
-
-        // 管理员账号
-        VALID_USERS.put("admin", new UserInfo("admin", "123456", "admin@example.com", "系统管理员", "admin", true));
-
-        // 锁定账号
-        VALID_USERS.put("locked", new UserInfo("locked", "123456", "locked@example.com", "已锁定用户", "user", false));
-    }
-
-    private static class UserInfo {
-        String username;
-        String password;
-        String email;
-        String displayName;
-        String role;
-        boolean isActive;
-
-        UserInfo(String username, String password, String email, String displayName, String role, boolean isActive) {
-            this.username = username;
-            this.password = password;
-            this.email = email;
-            this.displayName = displayName;
-            this.role = role;
-            this.isActive = isActive;
-        }
-    }
+    private static UserDataSource userDataSource;
 
     public interface LoginCallback {
         void onSuccess(LoginResponse response);
         void onError(String errorMessage);
+    }
+
+    // 初始化数据源（需要在 Application 或首次调用时设置）
+    public static void init(Context context) {
+        if (userDataSource == null) {
+            userDataSource = UserDataSource.getInstance(context);
+        }
     }
 
     public static void login(LoginRequest request, LoginCallback callback) {
@@ -56,37 +31,40 @@ public class ApiService {
             String username = request.getUsername();
             String password = request.getPassword();
 
-            if (!VALID_USERS.containsKey(username)) {
+            // 从 UserDataSource 获取用户
+            if (userDataSource == null) {
+                callback.onError("系统初始化错误");
+                return;
+            }
+
+            User user = userDataSource.getUserByUsername(username);
+
+            if (user == null) {
                 callback.onError("用户名不存在");
                 return;
             }
 
-            UserInfo userInfo = VALID_USERS.get(username);
-
-            if (!userInfo.isActive) {
-                callback.onError("账号已被锁定，请联系管理员");
-                return;
-            }
-
-            if (!userInfo.password.equals(password)) {
+            if (!user.getPassword().equals(password)) {
                 callback.onError("密码错误");
                 return;
             }
 
-            User user = new User(username, "user_token_" + System.currentTimeMillis());
-            user.setEmail(userInfo.email);
-            user.setDisplayName(userInfo.displayName);
-            user.setRole(userInfo.role);
+            // 登录成功
+            User responseUser = new User(user.getUsername(), "token_" + System.currentTimeMillis());
+            responseUser.setDisplayName(user.getDisplayName());
+            responseUser.setRole(user.getRole());
+            responseUser.setEmail(user.getEmail());
+            responseUser.setPhone(user.getPhone());
 
-            String welcomeMessage = "admin".equals(userInfo.role) ?
-                    "欢迎管理员 " + userInfo.displayName + "！您拥有所有管理权限。" :
-                    "登录成功！欢迎回来，" + userInfo.displayName;
+            String welcomeMessage = "admin".equals(user.getRole()) ?
+                    "欢迎管理员 " + user.getDisplayName() + "！您拥有所有管理权限。" :
+                    "登录成功！欢迎回来，" + user.getDisplayName();
 
             LoginResponse response = new LoginResponse(
                     true,
                     welcomeMessage,
                     "token_" + System.currentTimeMillis() + "_" + username,
-                    user
+                    responseUser
             );
             callback.onSuccess(response);
 

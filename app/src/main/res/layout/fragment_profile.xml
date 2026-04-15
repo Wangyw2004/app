@@ -177,6 +177,40 @@
 
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 用户管理入口（仅管理员可见） -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardUserManagement"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="管理功能"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/userManagementButton"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="👥 用户管理"
+                android:textSize="14sp"
+                android:backgroundTint="@android:color/holo_purple" />
+
+        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
         <!-- 安全设置卡片 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

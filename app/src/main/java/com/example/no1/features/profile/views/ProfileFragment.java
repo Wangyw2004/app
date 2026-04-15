@@ -15,6 +15,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import com.example.no1.R;
 import com.example.no1.common.utils.UserSessionManager;
+import com.example.no1.data.local.UserDataSource;
+import com.example.no1.features.admin.views.UserManagementActivity;
 import com.example.no1.features.auth.views.LoginActivity;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -23,6 +25,7 @@ import java.util.Calendar;
 public class ProfileFragment extends Fragment {
 
     private UserSessionManager sessionManager;
+    private UserDataSource userDataSource;
 
     private TextView userRoleText;
     private TextInputEditText nicknameEdit;
@@ -33,7 +36,7 @@ public class ProfileFragment extends Fragment {
     private TextInputLayout genderLayout;
     private TextInputLayout birthYearLayout;
     private TextInputLayout emailLayout;
-
+    private Button userManagementButton;
     private Button editInfoButton;
     private Button saveInfoButton;
     private Button cancelEditButton;
@@ -42,24 +45,28 @@ public class ProfileFragment extends Fragment {
     private Button logoutButton;
     private Button gotoLoginButton;
     private ProgressBar progressBar;
+    private View cardUserManagement;  // ✅ 添加卡片引用
 
     private boolean isEditing = false;
     private String[] genderOptions = {"保密", "男", "女"};
     private int[] birthYearOptions;
 
+    private static final String TAG = "ProfileFragment";
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        android.util.Log.d(TAG, "onCreateView called");
+
         View view = inflater.inflate(R.layout.fragment_profile, container, false);
 
         sessionManager = UserSessionManager.getInstance(requireContext());
+        userDataSource = UserDataSource.getInstance(requireContext());
+        android.util.Log.d(TAG, "onCreateView - isLoggedIn: " + sessionManager.isLoggedIn() + ", role: " + sessionManager.getRole());
 
-        // 未登录时直接跳转登录页
-        if (!sessionManager.isLoggedIn()) {
-            gotoLoginPage();
-            return view;
-        }
+        // 先初始化所有 View
+        initViews(view);
 
         // 初始化出生年份选项（1900-当前年）
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
@@ -68,7 +75,6 @@ public class ProfileFragment extends Fragment {
             birthYearOptions[i] = 1900 + i;
         }
 
-        initViews(view);
         setupListeners();
         updateUI();
 
@@ -76,12 +82,18 @@ public class ProfileFragment extends Fragment {
     }
 
     private void gotoLoginPage() {
+        android.util.Log.d(TAG, "gotoLoginPage called");
+
+        if (getActivity() == null || getActivity().isFinishing()) {
+            return;
+        }
+
         Intent intent = new Intent(getActivity(), LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
         startActivity(intent);
-        if (getActivity() != null) {
-            getActivity().finish();
-        }
+
+        getActivity().finishAffinity();
     }
 
     private void initViews(View view) {
@@ -103,6 +115,8 @@ public class ProfileFragment extends Fragment {
         logoutButton = view.findViewById(R.id.logoutButton);
         gotoLoginButton = view.findViewById(R.id.gotoLoginButton);
         progressBar = view.findViewById(R.id.progressBar);
+        userManagementButton = view.findViewById(R.id.userManagementButton);
+        cardUserManagement = view.findViewById(R.id.cardUserManagement);  // ✅ 初始化卡片
     }
 
     private void setupListeners() {
@@ -123,11 +137,43 @@ public class ProfileFragment extends Fragment {
         birthYearEdit.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) showBirthYearPicker();
         });
+
+        userManagementButton.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), UserManagementActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void updateUI() {
-        if (sessionManager.isLoggedIn()) {
-            userRoleText.setText(sessionManager.isAdmin() ? "管理员" : "普通用户");
+        if (getActivity() == null || getActivity().isFinishing()) {
+            return;
+        }
+
+        boolean isLoggedIn = sessionManager.isLoggedIn();
+        String role = sessionManager.getRole();
+
+        if (isLoggedIn) {
+            // 登录状态（普通用户或管理员）
+            if ("admin".equals(role)) {
+                userRoleText.setText("管理员");
+                // ✅ 管理员显示用户管理按钮
+                if (userManagementButton != null) {
+                    userManagementButton.setVisibility(View.VISIBLE);
+                }
+                if (cardUserManagement != null) {
+                    cardUserManagement.setVisibility(View.VISIBLE);
+                }
+            } else {
+                userRoleText.setText("普通用户");
+                // 普通用户隐藏用户管理按钮
+                if (userManagementButton != null) {
+                    userManagementButton.setVisibility(View.GONE);
+                }
+                if (cardUserManagement != null) {
+                    cardUserManagement.setVisibility(View.GONE);
+                }
+            }
+
             nicknameEdit.setText(sessionManager.getNickname());
             genderEdit.setText(sessionManager.getGender());
             birthYearEdit.setText(String.valueOf(sessionManager.getBirthYear()));
@@ -139,7 +185,26 @@ public class ProfileFragment extends Fragment {
             logoutButton.setVisibility(View.VISIBLE);
             gotoLoginButton.setVisibility(View.GONE);
         } else {
-            gotoLoginPage();
+            // 游客模式
+            userRoleText.setText("游客");
+            nicknameEdit.setText("");
+            genderEdit.setText("");
+            birthYearEdit.setText("");
+            emailEdit.setText("");
+
+            editInfoButton.setVisibility(View.GONE);
+            resetPasswordButton.setVisibility(View.GONE);
+            changePasswordButton.setVisibility(View.GONE);
+            logoutButton.setVisibility(View.GONE);
+            gotoLoginButton.setVisibility(View.VISIBLE);
+
+            // 游客隐藏用户管理按钮
+            if (userManagementButton != null) {
+                userManagementButton.setVisibility(View.GONE);
+            }
+            if (cardUserManagement != null) {
+                cardUserManagement.setVisibility(View.GONE);
+            }
         }
         exitEditMode();
     }
@@ -161,11 +226,13 @@ public class ProfileFragment extends Fragment {
         genderEdit.setEnabled(false);
         birthYearEdit.setEnabled(false);
         emailEdit.setEnabled(false);
-        editInfoButton.setVisibility(sessionManager.isLoggedIn() ? View.VISIBLE : View.GONE);
+
+        boolean isLoggedIn = sessionManager.isLoggedIn();
+        editInfoButton.setVisibility(isLoggedIn ? View.VISIBLE : View.GONE);
         saveInfoButton.setVisibility(View.GONE);
         cancelEditButton.setVisibility(View.GONE);
 
-        if (sessionManager.isLoggedIn()) {
+        if (isLoggedIn) {
             nicknameEdit.setText(sessionManager.getNickname());
             genderEdit.setText(sessionManager.getGender());
             birthYearEdit.setText(String.valueOf(sessionManager.getBirthYear()));
@@ -241,9 +308,16 @@ public class ProfileFragment extends Fragment {
                 .setPositiveButton("确认", (dialog, which) -> {
                     progressBar.setVisibility(View.VISIBLE);
                     new android.os.Handler().postDelayed(() -> {
+                        boolean success = userDataSource.resetPassword(sessionManager.getUsername());
                         progressBar.setVisibility(View.GONE);
-                        Toast.makeText(getContext(), "密码已重置为 123456", Toast.LENGTH_SHORT).show();
-                    }, 1000);
+
+                        if (success) {
+                            Toast.makeText(getContext(), "密码已重置为 123456，请重新登录", Toast.LENGTH_SHORT).show();
+                            performLogout();
+                        } else {
+                            Toast.makeText(getContext(), "重置失败", Toast.LENGTH_SHORT).show();
+                        }
+                    }, 500);
                 })
                 .setNegativeButton("取消", null)
                 .show();
@@ -280,15 +354,40 @@ public class ProfileFragment extends Fragment {
             }
 
             progressBar.setVisibility(View.VISIBLE);
+
             new android.os.Handler().postDelayed(() -> {
+                boolean success = userDataSource.updatePassword(
+                        sessionManager.getUsername(), oldPwd, newPwd
+                );
                 progressBar.setVisibility(View.GONE);
-                Toast.makeText(getContext(), "密码修改成功，请重新登录", Toast.LENGTH_SHORT).show();
-                sessionManager.logout();
-                gotoLoginPage();
-            }, 1000);
+
+                if (success) {
+                    Toast.makeText(getContext(), "密码修改成功，请重新登录", Toast.LENGTH_SHORT).show();
+                    performLogout();
+                } else {
+                    Toast.makeText(getContext(), "原密码错误", Toast.LENGTH_SHORT).show();
+                }
+            }, 500);
         });
         builder.setNegativeButton("取消", null);
         builder.show();
+    }
+
+    private void performLogout() {
+        android.util.Log.d(TAG, "performLogout called");
+
+        if (getActivity() == null || getActivity().isFinishing()) {
+            return;
+        }
+
+        sessionManager.logout();
+
+        android.util.Log.d(TAG, "After logout - isLoggedIn: " + sessionManager.isLoggedIn() +
+                ", role: " + sessionManager.getRole());
+
+        updateUI();
+
+        Toast.makeText(getContext(), "已退出登录，当前为游客模式", Toast.LENGTH_SHORT).show();
     }
 
     private void showLogoutConfirmDialog() {
@@ -296,9 +395,7 @@ public class ProfileFragment extends Fragment {
                 .setTitle("确认退出")
                 .setMessage("确定要退出登录吗？")
                 .setPositiveButton("确定", (dialog, which) -> {
-                    sessionManager.logout();
-                    Toast.makeText(getContext(), "已退出登录", Toast.LENGTH_SHORT).show();
-                    gotoLoginPage();
+                    performLogout();
                 })
                 .setNegativeButton("取消", null)
                 .show();
@@ -307,10 +404,12 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (!sessionManager.isLoggedIn()) {
-            gotoLoginPage();
-        } else {
-            updateUI();
-        }
+        android.util.Log.d(TAG, "onResume - isLoggedIn: " + sessionManager.isLoggedIn() + ", role: " + sessionManager.getRole());
+        updateUI();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
     }
 }
